@@ -235,9 +235,9 @@
     <ClInclude Include="base\aes.h" />
     <ClInclude Include="base\helpers.h" />
     <ClInclude Include="base\mock.h" />
+    <ClInclude Include="base\utils.h" />
     <ClInclude Include="beacon.h" />
     <ClInclude Include="beacon_user_data.h" />
-    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile" />

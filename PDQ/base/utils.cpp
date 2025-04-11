@@ -1,5 +1,47 @@
 #include "base/utils.h"
 
+BYTE* readFileToBuffer(const char* filePath, DWORD* pFileSize) {
+    HANDLE hFile = CreateFileA(
+        filePath,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL
+    );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        BeaconPrintf(CALLBACK_ERROR, "[-] Failed to open file: %s (error %i)", filePath, GetLastError());
+        return NULL;
+    }
+
+    DWORD fileSize = GetFileSize(hFile, NULL);
+    if (fileSize == INVALID_FILE_SIZE || fileSize == 0) {
+        BeaconPrintf(CALLBACK_ERROR, "[-] Invalid file size for: %s", filePath);
+        CloseHandle(hFile);
+        return NULL;
+    }
+
+    BYTE* buffer = (BYTE*)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, fileSize);
+    if (!buffer) {
+        BeaconPrintf(CALLBACK_ERROR, "[-] HeapAlloc failed for: %s", filePath);
+        CloseHandle(hFile);
+        return NULL;
+    }
+
+    DWORD bytesRead;
+    if (!ReadFile(hFile, buffer, fileSize, &bytesRead, NULL) || bytesRead != fileSize) {
+        BeaconPrintf(CALLBACK_ERROR, "[-] Failed to read file: %s (error %i)", filePath, GetLastError());
+        HeapFree(GetProcessHeap(), 0, buffer);
+        CloseHandle(hFile);
+        return NULL;
+    }
+
+    CloseHandle(hFile);
+    *pFileSize = fileSize;
+    return buffer;
+}
 
 BOOL is_hex_char(char c) {
     return (c >= '0' && c <= '9') ||

